@@ -40,6 +40,15 @@ Writes a complete pytest file that imports from the generated module. Covers hap
 edge cases, and exception cases. The orchestrator executes the tests with subprocess
 and feeds pass/fail results into the Judge's assessment.
 
+### Judge agent
+Validates all three outputs before the report is generated. Runs two free checks first:
+`ast.parse()` on both the code and the test file to catch syntax errors without an API
+call. Then runs an LLM check that verifies the tests actually import the real module and
+function names, the reviewer's line numbers are real, and the code fulfills the spec.
+
+If any agent fails the Judge, only that agent re-runs — with a targeted correction hint
+explaining exactly what went wrong. Maximum 2 retries per agent per pipeline run.
+
 ## Requirements
 
 - Python 3.11+
