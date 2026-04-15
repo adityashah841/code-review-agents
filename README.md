@@ -18,15 +18,27 @@ uv sync
 python cli.py --spec "sort a list of integers" --name sorter
 ```
 
-## Agents
+## Agents in detail
 
-| Agent | Role |
-|---|---|
-| Spec | Expands your plain-English spec into a precise function contract |
-| Coder | Writes clean, typed Python from the expanded spec |
-| Reviewer | Scores the code across correctness, security, style, complexity |
-| Tester | Writes and executes a pytest suite against the generated code |
-| Judge | Validates all outputs, detects misalignment, triggers targeted retries |
+### Spec agent
+Converts your plain-English spec into a precise JSON function contract: function name,
+argument types, return type, edge cases, and an example call. Shown to you for
+confirmation before any code is generated — preventing misaligned outputs from the start.
+
+### Coder agent
+Receives the confirmed contract and writes clean, typed, stdlib-only Python with a
+Google-style docstring. Handles every edge case from the contract. On Judge retry,
+receives a targeted correction hint describing exactly what to fix.
+
+### Reviewer agent
+Reads the generated code and returns structured JSON: scores (0–10) for correctness,
+security, style, and complexity; a list of issues with line numbers and severity;
+and top improvement recommendations. On Judge retry, receives a targeted correction hint.
+
+### Tester agent
+Writes a complete pytest file that imports from the generated module. Covers happy path,
+edge cases, and exception cases. The orchestrator executes the tests with subprocess
+and feeds pass/fail results into the Judge's assessment.
 
 ## Requirements
 
