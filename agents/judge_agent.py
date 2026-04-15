@@ -112,6 +112,24 @@ class JudgeAgent(BaseAgent):
             f"TEST FILE ({test_path}):\n{tests}\n\n"
             f"TEST EXECUTION RESULT (returncode={test_returncode}):\n{test_stdout}"
         )
-        raw = self.call(prompt)
-        raw = re.sub(r"```(?:json)?", "", raw).strip().rstrip("```").strip()
-        return json.loads(raw)
+        for attempt in range(3):
+            raw = self.call(prompt)
+            raw = re.sub(r"```(?:json)?", "", raw).strip().rstrip("```").strip()
+            # Find the first { ... } block in case the model added preamble
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
+            if match:
+                raw = match.group(0)
+            try:
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                if attempt == 2:
+                    # Final fallback: treat all agents as failed so the pipeline retries
+                    return {
+                        "overall_pass": False,
+                        "agents": {
+                            "coder":    {"pass": False, "reason": "Judge could not parse its own response — retry"},
+                            "reviewer": {"pass": False, "reason": "Judge could not parse its own response — retry"},
+                            "tester":   {"pass": False, "reason": "Judge could not parse its own response — retry"},
+                        },
+                        "summary": "Judge returned malformed JSON after 3 attempts.",
+                    }
