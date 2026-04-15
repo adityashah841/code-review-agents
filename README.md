@@ -2,15 +2,89 @@
 
 > A self-correcting multi-agent CLI for automated Python code review.
 
-**Status:** Under construction — see checkpoints below.
+[![CI](https://github.com/adityashah841/code-review-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/adityashah841/code-review-agents/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 
-## What it does
+Three specialized AI agents — **Coder**, **Reviewer**, and **Tester** — collaborate
+to generate, review, and test Python code from a plain-English spec. A fourth **Judge**
+agent supervises all three, detects misaligned outputs, and triggers targeted retries.
 
-Three specialized AI agents — Coder, Reviewer, and Tester — collaborate to generate,
-review, and test Python code from a plain English spec. A fourth Judge agent supervises
-all three, detects misaligned or invalid outputs, and triggers targeted retries.
+All you need is an Anthropic API key.
+
+---
+
+## Demo
+
+```bash
+python cli.py review --spec "binary search on a sorted list" --name binary_search
+```
+
+```
+code-review-agents
+Spec: binary search on a sorted list
+
+[Spec] Expanding spec contract...
+[Coder] Generating code...
+[Reviewer + Tester] Running in parallel...
+[Runner] Executing pytest...
+[Judge] Evaluating all outputs...
+[Judge] All agents passed.
+
+┌─────────────────────────────┐
+│       Review scores         │
+├─────────────┬───────┬───────┤
+│ Correctness │  9/10 │ Excellent │
+│ Security    │  9/10 │ Excellent │
+│ Style       │  8/10 │ Good      │
+│ Complexity  │  7/10 │ Good      │
+└─────────────┴───────┴───────┘
+
+Tests: PASSED  |  Judge retries: 0  |  Tokens: 1842in / 987out
+Report saved to reports/review.md
+```
+
+---
+
+## How it works
+
+```
+Your spec (plain English)
+        ↓
+[Spec agent]  expands to a precise JSON function contract
+        ↓
+[Coder agent]  writes clean typed Python to workspace/
+        ↓
+[Reviewer] ──┐  run in parallel via asyncio.gather()
+[Tester]  ───┘  tests written and executed with pytest
+        ↓
+[Judge agent]  validates alignment across all outputs
+    ├── PASS → Markdown report generated
+    └── FAIL → targeted retry with correction hint (max 2×)
+```
+
+The Reviewer and Tester always run in parallel. Total wall-clock time equals the
+slower of the two, not their sum.
+
+---
+
+## Agents
+
+| Agent | Role |
+|---|---|
+| **Spec** | Expands plain-English to a precise JSON contract: function name, types, edge cases |
+| **Coder** | Writes clean, typed, stdlib-only Python from the contract |
+| **Reviewer** | Scores correctness, security, style, and complexity with line-level issues |
+| **Tester** | Writes and executes a pytest suite covering happy path, edge cases, exceptions |
+| **Judge** | Validates alignment, catches hallucinated imports, triggers targeted retries |
+
+---
 
 ## Quick start
+
+### Prerequisites
+
+- Python 3.11+
+- An Anthropic API key — get one free at [console.anthropic.com](https://console.anthropic.com)
 
 ### Install
 
@@ -24,18 +98,19 @@ uv sync
 ### Run a review
 
 ```bash
-# Using an env var (recommended)
+# Set your key once
 export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Review any plain-English spec
 python cli.py review --spec "sort a list of integers" --name sorter
+python cli.py review --spec "validate an email address" --name email_validator
+python cli.py review --spec "implement an LRU cache" --name lru_cache
 
-# Passing the key directly
-python cli.py review --spec "binary search on a sorted list" --name binary_search --api-key sk-ant-...
+# Stream the Coder output live
+python cli.py review --spec "binary search" --name binary_search --stream
 
-# Stream the Coder output token-by-token
-python cli.py review --spec "validate an email address" --name email_validator --stream
-
-# Skip the spec confirmation prompt
-python cli.py review --spec "compute fibonacci numbers" --name fib --yes
+# Pass your key directly (useful for one-off runs)
+python cli.py review --spec "reverse a string" --name reverser --api-key sk-ant-...
 ```
 
 ### View run history
@@ -45,89 +120,78 @@ python cli.py history
 python cli.py history --limit 5
 ```
 
-### All CLI options
+### Run with Docker
+
+```bash
+# Set your key and run
+export ANTHROPIC_API_KEY="sk-ant-..."
+docker compose run review --spec "sort a list" --name sorter
+```
+
+---
+
+## CLI reference
 
 ```
-python cli.py review --help
+python cli.py review [OPTIONS]
 
-Options:
   -s, --spec TEXT      Plain-English function spec  [required]
   -n, --name TEXT      Output module name  [default: module]
-  -o, --output TEXT    Report path  [default: reports/review.md]
+  -o, --output TEXT    Markdown report path  [default: reports/review.md]
   -k, --api-key TEXT   Anthropic API key (or set ANTHROPIC_API_KEY)
   --stream             Stream Coder output token-by-token
   -y, --yes            Skip spec confirmation prompt
+
+python cli.py history [OPTIONS]
+
+  -n, --limit INTEGER  Number of recent runs to show  [default: 20]
 ```
 
-## Agents in detail
+---
 
-### Spec agent
-Converts your plain-English spec into a precise JSON function contract: function name,
-argument types, return type, edge cases, and an example call. Shown to you for
-confirmation before any code is generated — preventing misaligned outputs from the start.
+## Output
 
-### Coder agent
-Receives the confirmed contract and writes clean, typed, stdlib-only Python with a
-Google-style docstring. Handles every edge case from the contract. On Judge retry,
-receives a targeted correction hint describing exactly what to fix.
+Every run produces a Markdown report in `reports/` with:
 
-### Reviewer agent
-Reads the generated code and returns structured JSON: scores (0–10) for correctness,
-security, style, and complexity; a list of issues with line numbers and severity;
-and top improvement recommendations. On Judge retry, receives a targeted correction hint.
+- Overall score and per-category breakdown (correctness, security, style, complexity)
+- Line-level issues sorted by severity (high / medium / low)
+- Top improvement recommendations
+- Full pytest output
+- The expanded spec contract JSON
+- Token usage and Judge retry count
 
-### Tester agent
-Writes a complete pytest file that imports from the generated module. Covers happy path,
-edge cases, and exception cases. The orchestrator executes the tests with subprocess
-and feeds pass/fail results into the Judge's assessment.
+Run history is persisted locally in `runs.db` (SQLite).
 
-### Judge agent
-Validates all three outputs before the report is generated. Runs two free checks first:
-`ast.parse()` on both the code and the test file to catch syntax errors without an API
-call. Then runs an LLM check that verifies the tests actually import the real module and
-function names, the reviewer's line numbers are real, and the code fulfills the spec.
+---
 
-If any agent fails the Judge, only that agent re-runs — with a targeted correction hint
-explaining exactly what went wrong. Maximum 2 retries per agent per pipeline run.
-
-## Architecture
+## Project structure
 
 ```
-User spec (plain English)
-        ↓
-[Spec agent]  ── expands to JSON contract ──→  shown to user for confirmation
-        ↓
-[Coder agent]  ── generates workspace/<name>.py
-        ↓
-[Reviewer agent] ──┐  (run in parallel via asyncio.gather)
-[Tester agent]  ───┘
-        ↓
-pytest executed on test file
-        ↓
-[Judge agent]  ── validates all three outputs
-    ├── PASS → Report generated
-    └── FAIL → targeted retry (max 2×) → back to failed agent
+code-review-agents/
+├── agents/
+│   ├── base_agent.py       Shared API wrapper with retry, streaming, token tracking
+│   ├── spec_agent.py       Spec expansion agent
+│   ├── coder_agent.py      Code generation agent
+│   ├── reviewer_agent.py   Code review agent
+│   ├── tester_agent.py     Test generation agent
+│   └── judge_agent.py      Output validation and retry orchestration
+├── orchestrator.py         Pipeline: Spec → Coder → Reviewer+Tester → Judge → Report
+├── cli.py                  Click CLI: review, history commands
+├── report_generator.py     Markdown report writer
+├── history.py              SQLite run history
+├── tests/                  Full test suite (mocked — no real API calls)
+└── workspace/              Generated .py files (gitignored)
 ```
 
-The Reviewer and Tester always run in parallel — total wall-clock time equals the
-slower of the two, not their sum. The Judge runs sequential to all three because it
-needs all outputs to assess alignment.
+---
 
-## Requirements
+## Cost
 
-- Python 3.11+
-- An Anthropic API key (get one at console.anthropic.com)
+Each pipeline run uses approximately 2,000–5,000 tokens depending on spec complexity.
+At claude-opus-4-5 pricing (~$15/M output tokens) a typical run costs under $0.10.
 
-*Full documentation added as project is built.*
+---
 
-## API key
+## Built by
 
-Pass your key with `--api-key` or set the environment variable:
-
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."
-python cli.py --spec "sort a list" --name sorter
-```
-
-The key is never stored to disk. It is passed at runtime and held only in memory
-for the duration of the run.
+Aditya Shah — [LinkedIn](https://linkedin.com/in/aditya-r-shah26)
