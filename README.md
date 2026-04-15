@@ -34,3 +34,15 @@ python cli.py --spec "sort a list of integers" --name sorter
 - An Anthropic API key (get one at console.anthropic.com)
 
 *Full documentation added as project is built.*
+
+## API key
+
+Pass your key with `--api-key` or set the environment variable:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+python cli.py --spec "sort a list" --name sorter
+```
+
+The key is never stored to disk. It is passed at runtime and held only in memory
+for the duration of the run.
