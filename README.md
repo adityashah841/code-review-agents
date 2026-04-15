@@ -49,6 +49,29 @@ function names, the reviewer's line numbers are real, and the code fulfills the 
 If any agent fails the Judge, only that agent re-runs — with a targeted correction hint
 explaining exactly what went wrong. Maximum 2 retries per agent per pipeline run.
 
+## Architecture
+
+```
+User spec (plain English)
+        ↓
+[Spec agent]  ── expands to JSON contract ──→  shown to user for confirmation
+        ↓
+[Coder agent]  ── generates workspace/<name>.py
+        ↓
+[Reviewer agent] ──┐  (run in parallel via asyncio.gather)
+[Tester agent]  ───┘
+        ↓
+pytest executed on test file
+        ↓
+[Judge agent]  ── validates all three outputs
+    ├── PASS → Report generated
+    └── FAIL → targeted retry (max 2×) → back to failed agent
+```
+
+The Reviewer and Tester always run in parallel — total wall-clock time equals the
+slower of the two, not their sum. The Judge runs sequential to all three because it
+needs all outputs to assess alignment.
+
 ## Requirements
 
 - Python 3.11+
