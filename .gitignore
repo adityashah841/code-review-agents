@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+*.db
+workspace/*.py
+reports/*.md
+!reports/.gitkeep
+!workspace/.gitkeep
+dist/
+*.egg-info/
+.DS_Store
