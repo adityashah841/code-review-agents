@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  review:
+    build: .
+    volumes:
+      - ./workspace:/app/workspace
+      - ./reports:/app/reports
+      - ./runs.db:/app/runs.db
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    entrypoint: ["uv", "run", "python", "cli.py", "review"]
