@@ -12,10 +12,51 @@ all three, detects misaligned or invalid outputs, and triggers targeted retries.
 
 ## Quick start
 
+### Install
+
 ```bash
+git clone https://github.com/adityashah841/code-review-agents
+cd code-review-agents
 pip install uv
 uv sync
-python cli.py --spec "sort a list of integers" --name sorter
+```
+
+### Run a review
+
+```bash
+# Using an env var (recommended)
+export ANTHROPIC_API_KEY="sk-ant-..."
+python cli.py review --spec "sort a list of integers" --name sorter
+
+# Passing the key directly
+python cli.py review --spec "binary search on a sorted list" --name binary_search --api-key sk-ant-...
+
+# Stream the Coder output token-by-token
+python cli.py review --spec "validate an email address" --name email_validator --stream
+
+# Skip the spec confirmation prompt
+python cli.py review --spec "compute fibonacci numbers" --name fib --yes
+```
+
+### View run history
+
+```bash
+python cli.py history
+python cli.py history --limit 5
+```
+
+### All CLI options
+
+```
+python cli.py review --help
+
+Options:
+  -s, --spec TEXT      Plain-English function spec  [required]
+  -n, --name TEXT      Output module name  [default: module]
+  -o, --output TEXT    Report path  [default: reports/review.md]
+  -k, --api-key TEXT   Anthropic API key (or set ANTHROPIC_API_KEY)
+  --stream             Stream Coder output token-by-token
+  -y, --yes            Skip spec confirmation prompt
 ```
 
 ## Agents in detail
