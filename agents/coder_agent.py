@@ -20,8 +20,8 @@ class CoderAgent(BaseAgent):
     The generated code is written to workspace/<module_name>.py
     """
 
-    def __init__(self, api_key: str):
-        super().__init__("Coder", CODER_SYSTEM, api_key)
+    def __init__(self, api_key: str, model: str = "claude-opus-4-5"):
+        super().__init__("Coder", CODER_SYSTEM, api_key, model=model)
 
     def generate(self, spec_contract: dict, module_name: str,
                  stream: bool = False,

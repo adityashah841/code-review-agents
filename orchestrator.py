@@ -14,6 +14,7 @@ async def run_pipeline(
     api_key: str,
     stream_coder: bool = False,
     console=None,
+    model: str = "claude-opus-4-5",
 ) -> dict:
     """
     Full pipeline:
@@ -35,11 +36,11 @@ async def run_pipeline(
             print(msg)
 
     # --- Instantiate agents ---
-    spec_agent     = SpecAgent(api_key)
-    coder_agent    = CoderAgent(api_key)
-    reviewer_agent = ReviewerAgent(api_key)
-    tester_agent   = TesterAgent(api_key)
-    judge_agent    = JudgeAgent(api_key)
+    spec_agent     = SpecAgent(api_key, model=model)
+    coder_agent    = CoderAgent(api_key, model=model)
+    reviewer_agent = ReviewerAgent(api_key, model=model)
+    tester_agent   = TesterAgent(api_key, model=model)
+    judge_agent    = JudgeAgent(api_key, model=model)
 
     # --- Step 1: Spec expansion ---
     log("[Spec] Expanding spec contract...")
@@ -142,6 +143,7 @@ async def run_pipeline(
         "judge_retries":        judge_retries,
         "total_input_tokens":   total_input,
         "total_output_tokens":  total_output,
+        "model":                model,
     }
 
     # --- Step 8: Persist to history ---

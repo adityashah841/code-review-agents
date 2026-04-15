@@ -22,6 +22,7 @@ def generate_report(result: dict, output_path: str) -> None:
         f"# Code Review Report — `{result['module_name']}`",
         f"",
         f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}  ",
+        f"**Model:** {result.get('model', 'claude-opus-4-5')}  ",
         f"**Spec:** {result['raw_spec']}  ",
         f"**Tests:** {'PASSED' if result['tests_passed'] else 'FAILED'}  ",
         f"**Judge retries:** {result.get('judge_retries', 0)}  ",

@@ -30,8 +30,8 @@ class SpecAgent(BaseAgent):
     is generated, preventing wasted API calls on misunderstood specs.
     """
 
-    def __init__(self, api_key: str):
-        super().__init__("Spec", SPEC_SYSTEM, api_key)
+    def __init__(self, api_key: str, model: str = "claude-opus-4-5"):
+        super().__init__("Spec", SPEC_SYSTEM, api_key, model=model)
 
     def expand(self, raw_spec: str) -> dict:
         """

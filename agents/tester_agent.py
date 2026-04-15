@@ -21,8 +21,8 @@ class TesterAgent(BaseAgent):
     and is then executed by the orchestrator.
     """
 
-    def __init__(self, api_key: str):
-        super().__init__("Tester", TESTER_SYSTEM, api_key)
+    def __init__(self, api_key: str, model: str = "claude-opus-4-5"):
+        super().__init__("Tester", TESTER_SYSTEM, api_key, model=model)
 
     def generate_tests(self, code_path: str, module_name: str,
                        spec_contract: dict,

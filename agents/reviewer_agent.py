@@ -34,8 +34,8 @@ class ReviewerAgent(BaseAgent):
     Issues include line numbers and severity for precise reporting.
     """
 
-    def __init__(self, api_key: str):
-        super().__init__("Reviewer", REVIEWER_SYSTEM, api_key)
+    def __init__(self, api_key: str, model: str = "claude-opus-4-5"):
+        super().__init__("Reviewer", REVIEWER_SYSTEM, api_key, model=model)
 
     def review(self, code_path: str,
                correction_hint: str = "") -> dict:

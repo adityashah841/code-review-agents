@@ -57,8 +57,8 @@ class JudgeAgent(BaseAgent):
 
     MAX_RETRIES = 2
 
-    def __init__(self, api_key: str):
-        super().__init__("Judge", JUDGE_SYSTEM, api_key)
+    def __init__(self, api_key: str, model: str = "claude-opus-4-5"):
+        super().__init__("Judge", JUDGE_SYSTEM, api_key, model=model)
 
     def evaluate(
         self,

@@ -139,6 +139,7 @@ python cli.py review [OPTIONS]
   -n, --name TEXT      Output module name  [default: module]
   -o, --output TEXT    Markdown report path  [default: reports/review.md]
   -k, --api-key TEXT   Anthropic API key (or set ANTHROPIC_API_KEY)
+  -m, --model TEXT     Model to use for all agents  [default: claude-opus-4-5]
   --stream             Stream Coder output token-by-token
   -y, --yes            Skip spec confirmation prompt
 
@@ -185,10 +186,85 @@ code-review-agents/
 
 ---
 
+## Model benchmark — stress test results
+
+The same five specs were run against two models to compare quality, reliability, and cost.
+All runs used live Anthropic API calls with no human intervention.
+
+### Specs used
+
+| # | Spec | Complexity |
+|---|---|---|
+| 1 | Check if a number is prime | Simple |
+| 2 | Recursive descent arithmetic expression parser (+, -, *, /, parentheses, precedence) | Medium |
+| 3 | LRU cache with doubly linked list + hashmap, O(1) get/put, eviction | Medium-Hard |
+| 4 | Trie with insert, search, starts_with, delete | Hard |
+| 5 | Weighted directed graph with Dijkstra, DFS, BFS, cycle detection | Hard |
+
+---
+
+### claude-opus-4-6
+
+| Spec | Score | Tests | Judge retries | Tokens (in/out) |
+|---|---|---|---|---|
+| is_prime | **9.8/10** | PASSED ✅ | 0 | 5,344 / 3,192 |
+| expr_parser | **8.3/10** | PASSED ✅ | 0 | 11,725 / 6,698 |
+| lru_cache | **9.0/10** | PASSED ✅ | 0 | 9,627 / 5,342 |
+| trie | **9.0/10** | PASSED ✅ | 0 | 9,639 / 5,673 |
+| graph | **9.3/10** | PASSED ✅ | 0 | 14,147 / 7,392 |
+| **Average** | **9.1/10** | **5/5 passed** | **0** | **50,482 / 28,297** |
+
+All five specs passed the Judge on the first attempt. No retries were needed.
+
+---
+
+### claude-haiku-4-5
+
+| Spec | Score | Tests | Judge retries | Tokens (in/out) |
+|---|---|---|---|---|
+| is_prime | **9.3/10** | PASSED ✅ | 0 | 4,618 / 2,578 |
+| expr_parser | **7.5/10** | FAILED ❌ | 2 | 20,562 / 17,820 |
+| lru_cache | **8.8/10** | FAILED ❌ | 2 | 29,637 / 17,655 |
+| trie | **6.5/10** | FAILED ❌ | 2 | 34,888 / 19,978 |
+| graph | **8.0/10** | PASSED ✅ | 0 | 11,069 / 6,634 |
+| **Average** | **8.0/10** | **2/5 passed** | **1.2 avg** | **100,774 / 64,665** |
+
+Haiku hit the 2-retry ceiling on the three hardest specs and still failed. The Judge's
+correction hints were detailed and accurate — the model simply couldn't fix subtle
+recursive logic bugs (LRU list invariants, Trie `delete` return value, parser precedence)
+within the retry budget.
+
+---
+
+### Head-to-head comparison
+
+| Metric | claude-opus-4-6 | claude-haiku-4-5 |
+|---|---|---|
+| Pass rate | **5/5 (100%)** | 2/5 (40%) |
+| Avg score | **9.1/10** | 8.0/10 |
+| Avg judge retries | **0** | 1.2 |
+| Total tokens (5 runs) | 78,779 | 165,439 |
+| Relative token cost | **1×** | ~2.1× more tokens |
+
+> Opus produces higher-quality code on the first pass, avoiding the retry loops that
+> inflate Haiku's token count on complex specs. For hard data-structure problems,
+> Opus 4.6 is both more reliable and more token-efficient than Haiku 4.5 despite
+> its higher per-token price.
+
+---
+
 ## Cost
 
-Each pipeline run uses approximately 2,000–5,000 tokens depending on spec complexity.
-At claude-opus-4-5 pricing (~$15/M output tokens) a typical run costs under $0.10.
+| Model | Approx cost per simple run | Approx cost per complex run |
+|---|---|---|
+| claude-opus-4-6 | ~$0.04 | ~$0.15 |
+| claude-haiku-4-5 | ~$0.01 | ~$0.10–0.20 (retries inflate cost) |
+
+Pass `--model <model-id>` to select the model at runtime:
+```bash
+python cli.py review --spec "..." --name foo --model claude-haiku-4-5-20251001
+python cli.py review --spec "..." --name foo --model claude-opus-4-6
+```
 
 ---
 

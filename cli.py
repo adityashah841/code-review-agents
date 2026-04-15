@@ -78,7 +78,13 @@ def cli():
     default=False,
     help="Skip the spec confirmation prompt",
 )
-def review(spec, name, output, api_key, stream, yes):
+@click.option(
+    "--model", "-m",
+    default="claude-opus-4-5",
+    show_default=True,
+    help="Anthropic model to use for all agents",
+)
+def review(spec, name, output, api_key, stream, yes, model):
     """Run the full multi-agent review pipeline on a spec."""
 
     validate_api_key(api_key)
@@ -86,7 +92,8 @@ def review(spec, name, output, api_key, stream, yes):
     console.print()
     console.print(Panel.fit(
         f"[bold]code-review-agents[/bold]\n"
-        f"Spec: [italic]{spec}[/italic]",
+        f"Spec: [italic]{spec}[/italic]\n"
+        f"Model: [dim]{model}[/dim]",
         border_style="dim",
     ))
     console.print()
@@ -101,6 +108,7 @@ def review(spec, name, output, api_key, stream, yes):
                 api_key=api_key,
                 stream_coder=stream,
                 console=console,
+                model=model,
             )
         )
 
