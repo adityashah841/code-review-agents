@@ -82,13 +82,13 @@ class BaseAgent:
         """Write content to workspace/ and return the full path."""
         os.makedirs("workspace", exist_ok=True)
         path = f"workspace/{filename}"
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
         return path
 
     def read_file(self, path: str) -> str:
         """Read a file and return its content."""
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             return f.read()
 
     @staticmethod
